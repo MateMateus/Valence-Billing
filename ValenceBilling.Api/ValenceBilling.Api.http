@@ -1,6 +1,6 @@
-@ProjetoMateus.Api_HostAddress = http://localhost:5178
+@ValenceBilling.Api_HostAddress = http://localhost:5178
 
-GET {{ProjetoMateus.Api_HostAddress}}/weatherforecast/
+GET {{ValenceBilling.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
