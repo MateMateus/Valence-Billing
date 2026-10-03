@@ -112,16 +112,27 @@ A solução segue a separação estrita de responsabilidades:
     * Cálculo de vencimento atômico e consistente a partir de captura única de `DateTime.UtcNow`.
   * API integrada (`Program.cs`) com aplicação automática de migrations e seed em desenvolvimento, com política *Fail-Fast* (`throw` em caso de erro crítico no startup).
 
-### **Fase 2: Camada de Aplicação (EM PLANEJAMENTO):**
-* **Branch obrigatória a criar:** `feature/application-services` (a partir da `main`).
-* **Objetivos:**
-  * DTOs de entrada e saída para Clientes, Planos, Assinaturas e Faturas.
-  * Validações de negócio com **FluentValidation** (validação matemática de CNPJ, formato de e-mail e regras de negócio).
-  * Casos de uso / Serviços de Domínio:
-    * Gerenciamento de contratos de assinatura.
-    * Motor de ciclo de faturamento (geração automatizada de faturas mensais por competência sem duplicidade).
-    * Baixa e liquidação de faturas com registro de pagamento.
-    * Régua de cobrança (identificação de faturas vencidas e suspensão de assinaturas).
+### **Fase 2: Camada de Aplicação (Próxima Etapa - A Fazer):**
+
+> **Comando inicial obrigatório para iniciar esta fase:**  
+> `git checkout -b feature/application-services`
+
+#### **Roteiro Direto de Implementação:**
+
+1. **Pacotes:**
+   * Adicionar `FluentValidation.DependencyInjectionExtensions` no `ValenceBilling.Application`.
+2. **DTOs e Validações de Entrada (FluentValidation):**
+   * `ClienteDTO` + `ClienteValidator` (validação matemática dos dígitos verificadores do CNPJ e e-mail).
+   * `PlanoDTO` + `PlanoValidator` (preço mensal > 0 e nome obrigatório).
+   * `AssinaturaDTO` + `AssinaturaValidator` (dia de vencimento entre 1 e 31, IDs válidos).
+   * `FaturaDTO` (dados para exibição e pagamento).
+3. **Casos de Uso / Serviços de Aplicação (`Services/`):**
+   * **`IClienteService` / `ClienteService`:** Cadastro e inativação de clientes.
+   * **`IAssinaturaService` / `AssinaturaService`:** Criação, renovação e cancelamento de contratos.
+   * **`IFaturamentoEngine` / `FaturamentoEngine` (Motor Recorrente):** Varrer assinaturas ativas com período vencendo e gerar as faturas do mês na competência (`yyyy-MM`) de forma idempotente (sem duplicidade).
+   * **`IPagamentoService` / `PagamentoService` (Liquidação):** Baixar faturas pagas e reativar automaticamente assinaturas suspensas por inadimplência.
+4. **Injeção de Dependência:**
+   * Criar `DependencyInjection.cs` na Application expondo o método de extensão `services.AddApplication()` para registrar serviços e validadores.
 
 ---
 
