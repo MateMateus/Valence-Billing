@@ -1,108 +1,115 @@
-﻿# Contexto do Projeto: Motor de Faturamento Recorrente B2B (Billing Engine)
+# Contexto do Projeto: Motor de Faturamento Recorrente B2B (Billing Engine)
 
 > **Documento Vivo de Arquitetura e Contexto**  
-> Este arquivo reÃºne todo o escopo, arquitetura, decisÃµes tÃ©cnicas, regras de trabalho e o progresso atual do projeto. Qualquer IA ou desenvolvedor deve ler este documento antes de sugerir ou continuar o desenvolvimento.
+> Este arquivo reúne todo o escopo, arquitetura, decisões técnicas, regras de trabalho e o progresso atual do projeto. Qualquer IA ou desenvolvedor deve ler este documento antes de sugerir ou continuar o desenvolvimento.
 
 ---
 
-## 1. VisÃ£o Geral e Objetivo do Sistema
+## 1. Visão Geral e Objetivo do Sistema
 
-* **Projeto:** Motor de Faturamento Recorrente e CobranÃ§a B2B (SaaS / Fintech).
-* **SoluÃ§Ã£o:** `ValenceBilling.sln`
-* **Objetivo:** Sistema de alta complexidade corporativa para gerenciar planos de assinatura, clientes corporativos (B2B), contratos de recorrÃªncia, emissÃ£o automatizada de faturas e controle de inadimplÃªncia/pagamentos.
-* **NÃ­vel:** Projetado com padrÃµes e exigÃªncias de processos seletivos plenos/seniores (concorrÃªncia, integridade referencial, imutabilidade financeira, auditoria e Clean Architecture).
+* **Projeto:** Motor de Faturamento Recorrente e Cobrança B2B (SaaS / Fintech).
+* **Solução:** `ValenceBilling.sln`
+* **Objetivo:** Sistema de alta complexidade corporativa para gerenciar planos de assinatura, clientes corporativos (B2B), contratos de recorrência, emissão automatizada de faturas e controle de inadimplência/pagamentos.
+* **Nível:** Projetado com padrões e exigências de processos seletivos plenos/seniores (concorrência, integridade referencial, imutabilidade financeira, auditoria e Clean Architecture).
 
 ---
 
-## 2. Stack TecnolÃ³gica e Ferramentas
+## 2. Stack Tecnológica e Ferramentas
 
-| Tecnologia | FunÃ§Ã£o no Sistema | Status |
+| Tecnologia | Função no Sistema | Status |
 | :--- | :--- | :--- |
 | **.NET 9 (C#)** | Plataforma principal da API e Web | Configurado (`global.json` e `.csproj`) |
 | **Entity Framework Core 9** | ORM, Migrations e Fluent API | Instalado no `ValenceBilling.Infrastructure` |
 | **SQL Server** | Banco de dados relacional | Provedor configurado |
-| **ASP.NET Core Identity** | AutenticaÃ§Ã£o, autorizaÃ§Ã£o e perfis | Configurado com chaves `Guid` |
+| **ASP.NET Core Identity** | Autenticação, autorização e perfis | Configurado com chaves `Guid` |
 | **Bootstrap 5.3** | Interface web responsiva | Instalado no `ValenceBilling.Web/wwwroot` |
-| **JavaScript (Fetch API)** | ComunicaÃ§Ã£o assÃ­ncrona com a API | Nativo do navegador |
-| **Chart.js** | GrÃ¡ficos do dashboard financeiro | SerÃ¡ importado via CDN nas telas Razor |
+| **JavaScript (Fetch API)** | Comunicação assíncrona com a API | Nativo do navegador |
+| **Chart.js** | Gráficos do dashboard financeiro | Será importado via CDN nas telas Razor |
 
 ---
 
-## 3. Arquitetura e DivisÃ£o das Camadas (Clean Architecture)
+## 3. Arquitetura e Divisão das Camadas (Clean Architecture)
 
-A soluÃ§Ã£o segue a separaÃ§Ã£o estrita de responsabilidades:
+A solução segue a separação estrita de responsabilidades:
 
-1. **`ValenceBilling.Domain` (CoraÃ§Ã£o do NegÃ³cio):**
-   * Totalmente puro e agnÃ³stico de frameworks/bancos de dados.
-   * ContÃ©m as entidades, regras de negÃ³cio e invariantes.
-   * **Sem DataAnnotations** (o mapeamento de banco Ã© feito exclusivamente via Fluent API na infraestrutura).
+1. **`ValenceBilling.Domain` (Coração do Negócio):**
+   * Totalmente puro e agnóstico de frameworks/bancos de dados.
+   * Contém as entidades, enums, regras de negócio e invariantes.
+   * **Sem DataAnnotations** (o mapeamento de banco é feito exclusivamente via Fluent API na infraestrutura).
 
 2. **`ValenceBilling.Application`:**
-   * Casos de uso, DTOs, interfaces de serviÃ§os e regras de aplicaÃ§Ã£o.
+   * Casos de uso, DTOs, interfaces de serviços, regras de aplicação e validações de entrada (FluentValidation).
 
 3. **`ValenceBilling.Infrastructure`:**
    * Acesso a dados (`AppDbContext`), mapeamentos Fluent API, Identity (`ApplicationUser`), Migrations e Seeds idempotentes.
 
 4. **`ValenceBilling.Api`:**
-   * Endpoints RESTful para integraÃ§Ã£o externa, processamento assÃ­ncrono e OpenAPI/Swagger.
+   * Endpoints RESTful para integração externa, processamento assíncrono e OpenAPI/Swagger.
 
 5. **`ValenceBilling.Web`:**
-   * AplicaÃ§Ã£o MVC (Razor Views + Controllers) para o painel administrativo/backoffice e dashboards financeiros.
+   * Aplicação MVC (Razor Views + Controllers) para o painel administrativo/backoffice e dashboards financeiros.
 
 ---
 
-## 4. Regras de Trabalho MandatÃ³rias (InstruÃ§Ãµes para a IA)
+## 4. Regras de Trabalho Mandatórias (Instruções para a IA)
 
 > [!IMPORTANT]
-> 1. **O desenvolvedor escreve TODO o cÃ³digo na mÃ£o.**
->    * A IA atua **exclusivamente** como arquiteta de software, mentora tÃ©cnica e revisora.
->    * A IA **NÃƒO deve criar nem modificar arquivos de cÃ³digo C# diretamente no disco**, a menos que o usuÃ¡rio solicite explicitamente.
-> 2. **DidÃ¡tica e Passo a Passo:**
->    * Explicar o porquÃª de cada decisÃ£o tÃ©cnica, apresentar o cÃ³digo como modelo para o usuÃ¡rio digitar, validar o que o usuÃ¡rio criou e apontar correÃ§Ãµes.
-> 3. **AtualizaÃ§Ã£o ContÃ­nua do Contexto:**
->    * Ao concluir marcos ou decisÃµes importantes, a IA deve orientar a atualizaÃ§Ã£o deste arquivo `CONTEXTO_PROJETO.md`.
+> 1. **O desenvolvedor escreve TODO o código na mão.**
+>    * A IA atua **exclusivamente** como arquiteta de software, mentora técnica e revisora.
+>    * A IA **NÃO deve criar nem modificar arquivos de código C# diretamente no disco**, a menos que o usuário solicite explicitamente.
+> 2. **Didática e Passo a Passo:**
+>    * Explicar o porquê de cada decisão técnica, apresentar o código como modelo para o usuário digitar, validar o que o usuário criou e apontar correções.
+> 3. **Atualização Contínua do Contexto:**
+>    * Ao concluir marcos ou decisões importantes, a IA deve orientar a atualização deste arquivo `CONTEXTO_PROJETO.md`.
 
 ---
 
-## 5. Modelo de DomÃ­nio (Agregados Principais)
+## 5. Modelo de Domínio (Agregados Principais)
 
-1. **`Plano`:**
-   * Representa os planos de assinatura comercializados (ex: Starter, Pro, Enterprise).
-   * Campos: `Id`, `Nome` (Ãºnico), `Descricao`, `ValorMensal`, `Frequencia`, `LimiteUsuarios`, `IsActive`, `CreatedAt`.
-2. **`Cliente`:**
-   * Empresas B2B tomadoras do serviÃ§o.
-   * Campos: `Id`, `RazaoSocial`, `NomeFantasia`, `Cnpj` (Ãºnico), `EmailFinanceiro`, `Telefone`, `IsActive`, `CreatedAt`.
+1. **`Cliente`:**
+   * Empresas B2B tomadoras do serviço.
+   * Campos: `Id` (`Guid.CreateVersion7`), `RazaoSocial`, `NomeFantasia`, `Cnpj` (único, 14 dígitos), `EmailFinanceiro`, `Telefone`, `IsActive`, `CreatedAt`.
+   * Navegações: `ICollection<Assinatura> Assinaturas`, `ICollection<Fatura> Faturas`.
+2. **`Plano`:**
+   * Planos de assinatura comercializados (ex: Starter, Pro, Enterprise).
+   * Campos: `Id` (`Guid.CreateVersion7`), `Nome` (único), `Descricao`, `ValorMensal` (`decimal`), `LimiteUsuarios`, `IsActive`, `CreatedAt`.
+   * Navegações: `ICollection<Assinatura> Assinaturas`.
 3. **`Assinatura`:**
    * Contrato recorrente que vincula um `Cliente` a um `Plano`.
-   * Campos: `Id`, `ClienteId`, `PlanoId`, `Status` (Ativa, Pendente, Suspensa, Cancelada), `DataInicio`, `DataFimPeriodoAtual`, `DiaVencimento`, `CreatedAt`.
+   * Campos: `Id` (`Guid.CreateVersion7`), `ClienteId` (FK), `Cliente`, `PlanoId` (FK), `Plano`, `Status` (`AssinaturaStatus`), `DataInicio`, `DataFimPeriodoAtual`, `DiaVencimento`, `CreatedAt`.
+   * Navegações: `ICollection<Fatura> Faturas`.
 4. **`Fatura`:**
-   * Registro financeiro imutÃ¡vel gerado por ciclo de cobranÃ§a.
-   * Campos: `Id`, `AssinaturaId`, `ClienteId`, `Competencia` (MÃªs/Ano), `ValorTotal`, `DataVencimento`, `Status` (Pendente, Paga, Vencida, Cancelada), `DataPagamento`, `CreatedAt`.
+   * Registro financeiro imutável gerado por ciclo de cobrança.
+   * Campos: `Id` (`Guid.CreateVersion7`), `AssinaturaId` (FK), `Assinatura`, `ClienteId` (FK), `Cliente`, `Competencia` (Mês/Ano ex: "2026-10"), `ValorTotal` (`decimal`), `DataVencimento`, `Status` (`FaturaStatus`), `DataPagamento`, `CreatedAt`.
+
+### Enums do Domínio (`ValenceBilling.Domain/Enums`):
+* **`AssinaturaStatus`:** `Pendente = 1`, `Ativa = 2`, `Suspensa = 3`, `Cancelada = 4`.
+* **`FaturaStatus`:** `Pendente = 1`, `Paga = 2`, `Vencida = 3`, `Cancelada = 4`.
 
 ---
 
-## 6. Fase Atual do Projeto: Fase 1
+## 6. Fase Atual do Projeto: Fase 1 (Modelagem e Persistência)
 
 ### **Objetivo da Fase 1:**
-Modelar entidades, configurar EF Core com Fluent API, configurar ASP.NET Identity com `Guid`, preparar migraÃ§Ãµes e seed idempotente no SQL Server.
+Modelar entidades e enums, configurar EF Core com Fluent API, configurar ASP.NET Identity com `Guid`, preparar migrações e seed idempotente no SQL Server.
 
-### **EntregÃ¡veis TÃ©cnicos:**
+### **Entregáveis Técnicos:**
 * **Integridade Referencial:**
   * Relacionamentos com `DeleteBehavior.Restrict` em todas as chaves estrangeiras de `Assinatura` e `Fatura`.
-* **Ãndices de Performance e Constraints:**
-  * `Cliente(Cnpj)` Ãºnico.
-  * `Plano(Nome)` Ãºnico.
-  * `Fatura(AssinaturaId, Competencia)` composto Ãºnico.
-  * `Fatura(Status, DataVencimento)` para otimizaÃ§Ã£o da rÃ©gua de cobranÃ§a.
+* **Índices de Performance e Constraints:**
+  * `Cliente(Cnpj)` único (14 dígitos).
+  * `Plano(Nome)` único.
+  * `Fatura(AssinaturaId, Competencia)` composto único (evita cobrança dupla no mesmo ciclo).
+  * `Fatura(Status, DataVencimento)` para otimização da régua de cobrança.
 * **Filtros Globais de Consulta (Soft Delete):**
   * `IsActive = true` em `Cliente`, `Plano` e `ApplicationUser`.
-* **SeguranÃ§a e Perfis de Acesso (Identity):**
+* **Segurança e Perfis de Acesso (Identity):**
   * `ApplicationUser : IdentityUser<Guid>`
   * Perfis (Roles): `Admin`, `Financeiro`, `Cliente`.
 * **Seed Idempotente:**
-  * PopulaÃ§Ã£o de Roles, UsuÃ¡rios padrÃ£o (`admin@billing.local`, `financeiro@billing.local`, `empresa.teste@cliente.local`), catÃ¡logo de 3 planos e 1 carga de teste completa sem duplicar registros caso o sistema reinicie.
+  * População de Roles, Usuários padrão (`admin@billing.local`, `financeiro@billing.local`, `empresa.teste@cliente.local`), catálogo de 3 planos e 1 carga de teste completa sem duplicar registros caso o sistema reinicie.
 
-### **Comandos de ExecuÃ§Ã£o:**
+### **Comandos de Execução:**
 ```powershell
 # 1. Gerar Migration
 dotnet ef migrations add InitialCreate -p ValenceBilling.Infrastructure -s ValenceBilling.Api -o Persistence/Migrations
@@ -116,36 +123,45 @@ dotnet run --project ValenceBilling.Api
 
 ---
 
-## 7. Status Atual das Pastas e Arquivos Criados
+## 7. Status Atual das Pastas e Arquivos
 
+### **Domínio (`ValenceBilling.Domain`) - CONCLUÍDO (0 Erros / 0 Avisos)**:
 * **`ValenceBilling.Domain/Entities/`:**
-  * [x] `Plano.cs`
-  * [x] `Cliente.cs`
-  * [x] `Assinatura.cs`
-  * [x] `Fatura.cs`
+  * [x] `Cliente.cs` - Implementado (Guid v7, soft delete, coleções de navegação)
+  * [x] `Plano.cs` - Implementado (Guid v7, valor mensal decimal, navegação)
+  * [x] `Assinatura.cs` - Implementado (Guid v7, FKs explícitas, ciclo de faturamento)
+  * [x] `Fatura.cs` - Implementado (Guid v7, competência imutável, status, FKs)
+* **`ValenceBilling.Domain/Enums/`:**
+  * [x] `AssinaturaStatus.cs` - Implementado
+  * [x] `FaturaStatus.cs` - Implementado
+
+### **Infraestrutura (`ValenceBilling.Infrastructure`) - EM ANDAMENTO**:
 * **`ValenceBilling.Infrastructure/Identity/`:**
-  * [x] `ApplicationUser.cs`
+  * [ ] `ApplicationUser.cs` - Próximo passo (herdar `IdentityUser<Guid>`)
 * **`ValenceBilling.Infrastructure/Persistence/`:**
-  * [x] `AppDbContext.cs`
-  * [x] `DesignTimeDbContextFactory.cs`
-  * [x] Pastas `Migrations/` e `Seed/` criadas
-* **PrÃ³ximos Passos:**
-  1. Validar e preencher as propriedades e regras nas entidades do `Domain`.
-  2. Implementar as configuraÃ§Ãµes Fluent API (`IEntityTypeConfiguration<T>`).
-  3. Configurar `AppDbContext` herdando de `IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>`.
-  4. Implementar o `DatabaseSeeder.cs`.
+  * [ ] `AppDbContext.cs`
+  * [ ] `DesignTimeDbContextFactory.cs`
+  * [ ] Pastas `Configurations/` (Fluent API para cada entidade)
+  * [ ] Pastas `Migrations/` e `Seed/`
 
-### 7.1 DecisÃµes de Estrutura e Entidades
+### **Próximos Passos:**
+1. Implementar `ApplicationUser.cs` herdando de `IdentityUser<Guid>`.
+2. Implementar as configurações Fluent API (`IEntityTypeConfiguration<T>`).
+3. Configurar `AppDbContext` herdando de `IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>`.
+4. Configurar `DesignTimeDbContextFactory.cs`.
+5. Gerar e aplicar a primeira Migration (`InitialCreate`).
+6. Criar o Seeder idempotente (`DatabaseSeeder.cs`).
 
-- **Nomenclatura e pastas**: Mantidas como `Domain/Entities`, `Infrastructure/Identity` e `Infrastructure/Persistence`, seguindo a Clean Architecture.
-- **Entidades**: Cada classe (`Plano`, `Cliente`, `Assinatura`, `Fatura`) contÃ©m apenas as propriedades de domÃ­nio.  
-  - NÃ£o hÃ¡ lÃ³gica de validaÃ§Ã£o interna â€“ serÃ¡ tratada na camada **Application** (useâ€‘cases / services).  
-  - Propriedades `Id` usam `Guid`, `CreatedAt` em UTC, `IsActive` para softâ€‘delete.  
-- **Enums**: Foram adicionados `AssinaturaStatus` e `FaturaStatus` em `Domain/Enums` para representar os estados de ciclo de vida.
+---
 
-### 7.2 EstratÃ©gia de implementaÃ§Ã£o das entidades
+## 8. Decisões Arquiteturais Registradas
 
-- **Cliente.cs** serÃ¡ implementado como **POCO simples** â€“ classe pÃºblica com propriedades autoâ€‘implementadas (`set` pÃºblico).  
-- As validaÃ§Ãµes de CNPJ, eâ€‘mail, etc., serÃ£o tratadas na camada **Application** (services / useâ€‘cases), nÃ£o dentro da prÃ³pria entidade.  
-- As demais entidades (`Plano`, `Assinatura`, `Fatura`) seguirÃ£o o mesmo padrÃ£o, permitindo foco na modelagem de domÃ­nio antes da camada de persistÃªncia.
-
+1. **Adoção do UUIDv7 (`Guid.CreateVersion7()` do .NET 9):**
+   * Decisão: Utilizar `Guid.CreateVersion7()` como valor padrão para todas as chaves primárias.
+   * Motivo: Combina um prefixo temporal sequencial com entropia aleatória. Isso resolve 100% o problema clássico de fragmentação de índice B-Tree no SQL Server (mantendo performance equivalente a inteiros) e simultaneamente previne ataques de enumeração/IDOR e vazamento de métricas corporativas, além de permitir geração de ID em memória no cliente antes de persistir no banco.
+2. **Separação de Responsabilidades e Validações:**
+   * Domínio: POCOs puros, sem DataAnnotations.
+   * Banco de dados: Constraints físicas de tamanho (`HasMaxLength(14)` para CNPJ, `HasMaxLength(20)` para Telefone) e índices únicos via Fluent API.
+   * Regras de negócio: Validações de formato, dígitos verificadores de CNPJ e consistência via camada `Application` (FluentValidation).
+3. **Imutabilidade Financeira:**
+   * As faturas registram competência e valor total fixados no momento da cobrança para garantir rastreabilidade contábil imutável.
