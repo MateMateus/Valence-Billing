@@ -28,5 +28,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
         // Filtro Global de Soft Delete para os usuários do Identity
         builder.Entity<ApplicationUser>()
             .HasQueryFilter(u => u.IsActive);
+
+        // Relacionamento opcional entre ApplicationUser e Cliente (FK física com SetNull)
+        builder.Entity<ApplicationUser>()
+            .HasOne<Cliente>()
+            .WithMany()
+            .HasForeignKey(user => user.ClienteId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

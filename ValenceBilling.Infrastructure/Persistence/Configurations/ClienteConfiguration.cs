@@ -33,7 +33,7 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
             .IsRequired();
 
         builder.Property(c => c.Telefone)
-            .HasMaxLength(11) // DDD (2) + Número (8 ou 9 dígitos limpos)
+            .HasMaxLength(11) 
             .IsRequired();
 
         builder.Property(c => c.IsActive)

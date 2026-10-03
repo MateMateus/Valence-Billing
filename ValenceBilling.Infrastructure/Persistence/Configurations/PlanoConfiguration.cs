@@ -37,12 +37,6 @@ public class PlanoConfiguration : IEntityTypeConfiguration<Plano>
         builder.Property(p => p.CreatedAt)
             .IsRequired();
 
-        // Relacionamento 1:N com Assinatura (Protegido contra deleção acidental)
-        builder.HasMany(p => p.Assinaturas)
-            .WithOne(a => a.Plano)
-            .HasForeignKey(a => a.PlanoId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         // Filtro Global de Soft Delete
         builder.HasQueryFilter(p => p.IsActive);
     }
