@@ -22,45 +22,64 @@ public static class DatabaseSeeder
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
-                await roleManager.CreateAsync(new IdentityRole<Guid> { Name = role, NormalizedName = role.ToUpperInvariant() });
+                var roleResult = await roleManager.CreateAsync(new IdentityRole<Guid>
+                {
+                    Name = role,
+                    NormalizedName = role.ToUpperInvariant()
+                });
+
+                if (!roleResult.Succeeded)
+                {
+                    var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                    throw new InvalidOperationException($"Falha ao criar role '{role}': {errors}");
+                }
             }
         }
 
-        // 2. Planos Comerciais
-        if (!await context.Planos.AnyAsync())
+        // 2. Planos Comerciais (Inserção individual e resiliente com IgnoreQueryFilters)
+        var catalogoPlanos = new[]
         {
-            var planos = new[]
+            new Plano
             {
-                new Plano
-                {
-                    Nome = "Starter",
-                    Descricao = "Plano ideal para pequenas empresas em fase inicial",
-                    ValorMensal = 99.00m,
-                    LimiteUsuarios = 5
-                },
-                new Plano
-                {
-                    Nome = "Pro",
-                    Descricao = "Plano para empresas em expansão e equipes estruturadas",
-                    ValorMensal = 199.00m,
-                    LimiteUsuarios = 20
-                },
-                new Plano
-                {
-                    Nome = "Enterprise",
-                    Descricao = "Plano corporativo completo com suporte prioritário",
-                    ValorMensal = 499.00m,
-                    LimiteUsuarios = 100
-                }
-            };
+                Nome = "Starter",
+                Descricao = "Plano ideal para pequenas empresas em fase inicial",
+                ValorMensal = 99.00m,
+                LimiteUsuarios = 5
+            },
+            new Plano
+            {
+                Nome = "Pro",
+                Descricao = "Plano para empresas em expansão e equipes estruturadas",
+                ValorMensal = 199.00m,
+                LimiteUsuarios = 20
+            },
+            new Plano
+            {
+                Nome = "Enterprise",
+                Descricao = "Plano corporativo completo com suporte prioritário",
+                ValorMensal = 499.00m,
+                LimiteUsuarios = 100
+            }
+        };
 
-            await context.Planos.AddRangeAsync(planos);
-            await context.SaveChangesAsync();
+        foreach (var plano in catalogoPlanos)
+        {
+            var planoExistente = await context.Planos
+                .IgnoreQueryFilters()
+                .AnyAsync(p => p.Nome == plano.Nome);
+
+            if (!planoExistente)
+            {
+                await context.Planos.AddAsync(plano);
+            }
         }
+        await context.SaveChangesAsync();
 
-        // 3. Cliente de Teste B2B
-        var cnpjTeste = "12345678000199";
-        var clienteTeste = await context.Clientes.FirstOrDefaultAsync(c => c.Cnpj == cnpjTeste);
+        // 3. Cliente de Teste B2B (CNPJ matematicamente válido na Receita Federal)
+        var cnpjTeste = "45997418000153";
+        var clienteTeste = await context.Clientes
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Cnpj == cnpjTeste);
 
         if (clienteTeste == null)
         {
@@ -77,13 +96,15 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // 4. Usuários Iniciais
+        // 4. Usuários Iniciais com Validação de Erros
         await SeedUserAsync(userManager, "admin@billing.local", "Admin@123", "Administrador Valence", "Admin");
         await SeedUserAsync(userManager, "financeiro@billing.local", "Financeiro@123", "Operador Financeiro", "Financeiro");
         await SeedUserAsync(userManager, "empresa.teste@cliente.local", "Cliente@123", "Gestor Cliente Teste", "Cliente", clienteTeste.Id);
 
-        // 5. Carga de Teste: Assinatura e Fatura
-        var planoPro = await context.Planos.FirstAsync(p => p.Nome == "Pro");
+        // 5. Carga de Teste: Assinatura e Fatura com Paridade de ClienteId
+        var planoPro = await context.Planos
+            .IgnoreQueryFilters()
+            .FirstAsync(p => p.Nome == "Pro");
 
         var assinaturaAtiva = await context.Assinaturas
             .FirstOrDefaultAsync(a => a.ClienteId == clienteTeste.Id && a.PlanoId == planoPro.Id);
@@ -104,7 +125,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // Fatura da competência atual
+        // Fatura da competência atual garantindo paridade de ClienteId
         var competenciaAtual = DateTime.UtcNow.ToString("yyyy-MM");
         var faturaAtual = await context.Faturas
             .FirstOrDefaultAsync(f => f.AssinaturaId == assinaturaAtiva.Id && f.Competencia == competenciaAtual);
@@ -114,7 +135,7 @@ public static class DatabaseSeeder
             faturaAtual = new Fatura
             {
                 AssinaturaId = assinaturaAtiva.Id,
-                ClienteId = clienteTeste.Id,
+                ClienteId = assinaturaAtiva.ClienteId, // Garante que a fatura e a assinatura apontam para o mesmo cliente
                 Competencia = competenciaAtual,
                 ValorTotal = planoPro.ValorMensal,
                 DataVencimento = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 10, 0, 0, 0, DateTimeKind.Utc),
@@ -147,9 +168,17 @@ public static class DatabaseSeeder
             };
 
             var result = await userManager.CreateAsync(user, password);
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                await userManager.AddToRoleAsync(user, role);
+                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Falha ao criar usuário '{email}': {errors}");
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, role);
+            if (!roleResult.Succeeded)
+            {
+                var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Falha ao adicionar role '{role}' ao usuário '{email}': {errors}");
             }
         }
     }
