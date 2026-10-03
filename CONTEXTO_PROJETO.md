@@ -1,7 +1,7 @@
 # Contexto do Projeto: Motor de Faturamento Recorrente B2B (Billing Engine)
 
 > **Documento Vivo de Arquitetura e Contexto**  
-> Este arquivo reúne todo o escopo, arquitetura, decisões técnicas, regras de trabalho e o progresso atual do projeto. Qualquer IA ou desenvolvedor deve ler este documento antes de sugerir ou continuar o desenvolvimento.
+> Este arquivo reúne todo o escopo, arquitetura, decisões técnicas, regras de trabalho estritas e o progresso atual do projeto. Qualquer IA ou desenvolvedor deve ler este documento antes de sugerir ou continuar o desenvolvimento.
 
 ---
 
@@ -10,7 +10,7 @@
 * **Projeto:** Motor de Faturamento Recorrente e Cobrança B2B (SaaS / Fintech).
 * **Solução:** `ValenceBilling.sln`
 * **Objetivo:** Sistema de alta complexidade corporativa para gerenciar planos de assinatura, clientes corporativos (B2B), contratos de recorrência, emissão automatizada de faturas e controle de inadimplência/pagamentos.
-* **Nível:** Projetado com padrões e exigências de processos seletivos plenos/seniores (concorrência, integridade referencial, imutabilidade financeira, auditoria e Clean Architecture).
+* **Nível:** Projetado com padrões e exigências de processos seletivos plenos/seniores (concorrência, integridade referencial, imutabilidade financeira, auditoria, DDD e Clean Architecture).
 
 ---
 
@@ -20,7 +20,7 @@
 | :--- | :--- | :--- |
 | **.NET 9 (C#)** | Plataforma principal da API e Web | Configurado (`global.json` e `.csproj`) |
 | **Entity Framework Core 9** | ORM, Migrations e Fluent API | Instalado e configurado |
-| **SQL Server** | Banco de dados relacional | Provedor configurado |
+| **SQL Server** | Banco de dados relacional | LocalDB configurado e integrado |
 | **ASP.NET Core Identity** | Autenticação, autorização e perfis | Configurado com chaves `Guid` |
 | **Bootstrap 5.3** | Interface web responsiva | Instalado no `ValenceBilling.Web/wwwroot` |
 | **JavaScript (Fetch API)** | Comunicação assíncrona com a API | Nativo do navegador |
@@ -32,35 +32,41 @@
 
 A solução segue a separação estrita de responsabilidades:
 
-1. **`ValenceBilling.Domain` (Coração do Negócio):**
+1. **`ValenceBilling.Domain` (Coração do Negócio) - [CONCLUÍDO]:**
    * Totalmente puro e agnóstico de frameworks/bancos de dados.
    * Contém as entidades, enums, regras de negócio e invariantes (DDD: métodos explícitos de transição de estado como `Ativar()` e `Desativar()`).
    * **Sem DataAnnotations** (o mapeamento de banco é feito exclusivamente via Fluent API na infraestrutura).
 
-2. **`ValenceBilling.Application`:**
-   * Casos de uso, DTOs, interfaces de serviços, regras de aplicação e validações de entrada (FluentValidation).
+2. **`ValenceBilling.Infrastructure` (Acesso a Dados e Persistência) - [CONCLUÍDO]:**
+   * Acesso a dados (`AppDbContext`), mapeamentos Fluent API, Identity (`ApplicationUser`), Migrations e Seeds idempotentes e resilientes.
 
-3. **`ValenceBilling.Infrastructure`:**
-   * Acesso a dados (`AppDbContext`), mapeamentos Fluent API, Identity (`ApplicationUser`), Migrations e Seeds idempotentes com resiliência total.
+3. **`ValenceBilling.Application` (Casos de Uso e Regras de Aplicação) - [PRÓXIMA FASE]:**
+   * Casos de uso / Services (ciclo de assinatura, motor de geração de faturas, baixa de pagamentos), DTOs, interfaces de repositórios/serviços e validações com FluentValidation.
 
-4. **`ValenceBilling.Api`:**
+4. **`ValenceBilling.Api` (Exposição RESTful e Startup):**
    * Endpoints RESTful para integração externa, processamento assíncrono, OpenAPI/Swagger e pipeline de execução automática de migrations e seed em desenvolvimento.
 
-5. **`ValenceBilling.Web`:**
+5. **`ValenceBilling.Web` (Apresentação / Backoffice):**
    * Aplicação MVC (Razor Views + Controllers) para o painel administrativo/backoffice e dashboards financeiros.
 
 ---
 
-## 4. Regras de Trabalho Mandatórias (Instruções para a IA)
+## 4. Regras de Trabalho Mandatórias (Instruções Estritas para a IA)
 
 > [!IMPORTANT]
-> 1. **O desenvolvedor escreve TODO o código na mão.**
->    * A IA atua **exclusivamente** como arquiteta de software, mentora técnica e revisora.
->    * A IA **NÃO deve criar nem modificar arquivos de código C# diretamente no disco**, a menos que o usuário solicite explicitamente.
-> 2. **Didática e Passo a Passo:**
->    * Explicar o porquê de cada decisão técnica, apresentar o código como modelo para o usuário digitar, validar o que o usuário criou e apontar correções.
-> 3. **Atualização Contínua do Contexto:**
->    * Ao concluir marcos ou decisões importantes, a IA deve orientar a atualização deste arquivo `CONTEXTO_PROJETO.md`.
+> 1. **A IA NUNCA adiciona ou altera código C# direto no disco sozinha:**
+>    * O desenvolvedor é quem aplica todo o código no projeto.
+>    * A IA atua exclusivamente como **arquiteta de software, mentora técnica e revisora**.
+>    * A IA deve **sempre apresentar o modelo de código completo e didático no chat** para o desenvolvedor copiar/digitar no arquivo correspondente.
+> 2. **Validação, Compilação e Commit pela IA:**
+>    * Assim que o desenvolvedor avisa que colou/digitou o código no arquivo, a IA valida o arquivo, roda a compilação (`dotnet build`) para garantir zero erros e **executa o commit atômico correspondente**.
+> 3. **Estratégia de Branching Obrigatória (GitHub Flow / Feature Branches):**
+>    * **NUNCA commitar novidades diretamente na branch `main`**.
+>    * A cada nova fase, módulo ou conjunto de funcionalidades, **deve-se criar uma nova branch** a partir da `main` (ex.: `feature/infra-persistence`, `feature/application-billing`).
+>    * Todos os commits atômicos daquele módulo são feitos na branch específica.
+>    * Apenas após a conclusão, validação e autorização do usuário, a branch é mergeada na `main` utilizando obrigatoriamente **`git merge --no-ff`** para preservar a linha curva e o gráfico histórico visual no Git Graph.
+> 4. **Atualização Contínua do Contexto:**
+>    * Ao concluir marcos ou decisões importantes, a IA deve orientar ou registrar as alterações neste arquivo `CONTEXTO_PROJETO.md`.
 
 ---
 
@@ -68,7 +74,7 @@ A solução segue a separação estrita de responsabilidades:
 
 1. **`Cliente`:**
    * Empresas B2B tomadoras do serviço.
-   * Campos: `Id` (`Guid.CreateVersion7`), `RazaoSocial`, `NomeFantasia`, `Cnpj` (único, 14 dígitos), `EmailFinanceiro`, `Telefone` (11 dígitos limpos), `IsActive` (`private set`), `CreatedAt`.
+   * Campos: `Id` (`Guid.CreateVersion7`), `RazaoSocial`, `NomeFantasia`, `Cnpj` (único, 14 dígitos numéricos), `EmailFinanceiro`, `Telefone` (11 dígitos numéricos limpos), `IsActive` (`private set`), `CreatedAt`.
    * Métodos DDD: `Ativar()`, `Desativar()`.
    * Navegações: `ICollection<Assinatura> Assinaturas`, `ICollection<Fatura> Faturas`.
 2. **`Plano`:**
@@ -89,76 +95,49 @@ A solução segue a separação estrita de responsabilidades:
 
 ---
 
-## 6. Fase 1: Modelagem, Persistência e Infraestrutura
+## 6. Histórico de Fases do Projeto
 
-### **Entregáveis Técnicos Concluídos:**
-* **Integridade Referencial e Mapeamentos Limpos:**
-  * Relacionamentos centralizados unicamente nas entidades dependentes (`AssinaturaConfiguration` e `FaturaConfiguration`).
-  * `DeleteBehavior.Restrict` em todas as chaves estrangeiras de `Assinatura` e `Fatura`.
-  * `ApplicationUser` com FK opcional para `Cliente` (`DeleteBehavior.SetNull`).
-* **Índices de Performance e Constraints:**
-  * `Cliente(Cnpj)` único (14 dígitos numéricos sanitizados).
-  * `Cliente(Telefone)` limitado a 11 dígitos numéricos sanitizados.
-  * `Plano(Nome)` único.
-  * `Fatura(AssinaturaId, Competencia)` composto único (evita cobrança duplicada no mesmo ciclo).
-  * `Fatura(Status, DataVencimento)` para otimização da régua de cobrança.
-* **Filtros Globais de Consulta (Soft Delete):**
-  * `IsActive = true` em `Cliente`, `Plano` e `ApplicationUser`.
-  * Regra contábil: Consultas de relatórios históricos e fiscais devem aplicar `.IgnoreQueryFilters()` para não ocultar clientes inativos de faturas passadas.
-* **Segurança e Perfis de Acesso (Identity):**
-  * `ApplicationUser : IdentityUser<Guid>`
-  * Perfis (Roles): `Admin`, `Financeiro`, `Cliente`.
-* **Seed Idempotente e Resiliente:**
-  * População plano a plano tolerante a estados parciais.
-  * CNPJ de teste com algoritmo matematicamente válido (`45997418000153`).
-  * Uso de `.IgnoreQueryFilters()` no Seeder para evitar colisões com registros desativados.
-  * Tratamento estrito de erros do `IdentityResult` e reativação automática de entidades de teste.
-  * Cálculo consistente de vencimento a partir de captura atômica de `DateTime.UtcNow`.
-* **Integração com a API (`Program.cs`):**
-  * Startup configurado para aplicar `context.Database.MigrateAsync()` e invocar o `DatabaseSeeder` em ambiente de desenvolvimento.
-  * Falhas críticas de inicialização interrompem a API (`throw`) para impedir falsos positivos.
+### **Fase 1: Domínio, Infraestrutura, Persistência e API (CONCLUÍDA):**
+* **Branch utilizada:** `feature/infra-persistence` (mergeada na `main` com `--no-ff`).
+* **Entregáveis Concluídos:**
+  * Domínio puro modelado com UUIDv7 (`Guid.CreateVersion7`) e métodos DDD.
+  * Mapeamentos Fluent API limpos (relacionamentos centralizados unicamente no lado dependente).
+  * `ApplicationUser` integrado ao ASP.NET Identity com chave `Guid` e FK opcional para `Cliente` (`DeleteBehavior.SetNull`).
+  * Migration `InitialCreate` gerada com sucesso via EF Core CLI.
+  * `DatabaseSeeder` 100% idempotente e resiliente:
+    * Uso de `.IgnoreQueryFilters()` para não colidir com soft delete.
+    * Inserção plano a plano tolerante a estados parciais.
+    * CNPJ de teste matematicamente válido (`45997418000153`).
+    * Reativação automática de clientes/planos inativos no ambiente de desenvolvimento.
+    * Cálculo de vencimento atômico e consistente a partir de captura única de `DateTime.UtcNow`.
+  * API integrada (`Program.cs`) com aplicação automática de migrations e seed em desenvolvimento, com política *Fail-Fast* (`throw` em caso de erro crítico no startup).
 
----
-
-## 7. Status das Camadas e Arquivos
-
-### **Domínio (`ValenceBilling.Domain`) - CONCLUÍDO (0 Erros / 0 Avisos)**:
-* [x] `Entities/Cliente.cs` (Guid v7, DDD com Ativar/Desativar, soft delete)
-* [x] `Entities/Plano.cs` (Guid v7, valor mensal decimal, navegação)
-* [x] `Entities/Assinatura.cs` (Guid v7, FKs explícitas, ciclo de faturamento)
-* [x] `Entities/Fatura.cs` (Guid v7, competência imutável, status, FKs)
-* [x] `Enums/AssinaturaStatus.cs`
-* [x] `Enums/FaturaStatus.cs`
-
-### **Infraestrutura (`ValenceBilling.Infrastructure`) - CONCLUÍDO (0 Erros / 0 Avisos)**:
-* [x] `Identity/ApplicationUser.cs`
-* [x] `Persistence/Configurations/ClienteConfiguration.cs`
-* [x] `Persistence/Configurations/PlanoConfiguration.cs`
-* [x] `Persistence/Configurations/AssinaturaConfiguration.cs`
-* [x] `Persistence/Configurations/FaturaConfiguration.cs`
-* [x] `Persistence/AppDbContext.cs`
-* [x] `Persistence/DesignTimeDbContextFactory.cs`
-* [x] `Persistence/Seed/DatabaseSeeder.cs`
-* [x] `Persistence/Migrations/20261003021527_InitialCreate.cs` (Migration gerada com sucesso)
-
-### **API (`ValenceBilling.Api`) - INTEGRADA (0 Erros / 0 Avisos)**:
-* [x] `appsettings.Development.json` (Connection String do SQL Server LocalDB)
-* [x] `Program.cs` (Injeção de DbContext, Identity, Migrations e Seeder)
-* [x] `ValenceBilling.Api.csproj` (Referência ao `Microsoft.EntityFrameworkCore.Design`)
+### **Fase 2: Camada de Aplicação (EM PLANEJAMENTO):**
+* **Branch obrigatória a criar:** `feature/application-services` (a partir da `main`).
+* **Objetivos:**
+  * DTOs de entrada e saída para Clientes, Planos, Assinaturas e Faturas.
+  * Validações de negócio com **FluentValidation** (validação matemática de CNPJ, formato de e-mail e regras de negócio).
+  * Casos de uso / Serviços de Domínio:
+    * Gerenciamento de contratos de assinatura.
+    * Motor de ciclo de faturamento (geração automatizada de faturas mensais por competência sem duplicidade).
+    * Baixa e liquidação de faturas com registro de pagamento.
+    * Régua de cobrança (identificação de faturas vencidas e suspensão de assinaturas).
 
 ---
 
-## 8. Decisões Arquiteturais Registradas
+## 7. Decisões Arquiteturais Registradas
 
 1. **Adoção do UUIDv7 (`Guid.CreateVersion7()` do .NET 9):**
-   * Decisão: Utilizar `Guid.CreateVersion7()` como valor padrão para todas as chaves primárias.
-   * Motivo: Combina um prefixo temporal sequencial com entropia aleatória. Isso resolve 100% o problema clássico de fragmentação de índice B-Tree no SQL Server (mantendo performance equivalente a inteiros) e simultaneamente previne ataques de enumeração/IDOR e vazamento de métricas corporativas, além de permitir geração de ID em memória no cliente antes de persistir no banco.
-2. **Separação de Responsabilidades e Sanitização:**
-   * Domínio: POCOs puros com encapsulamento DDD.
-   * Banco de dados: Colunas limpas sanitizadas (`VARCHAR(14)` para CNPJ e `VARCHAR(11)` para Telefone sem caracteres de pontuação).
-   * Relacionamentos: Configurados unicamente no lado dependente para evitar redundâncias no grafo do EF Core.
-3. **Imutabilidade Financeira e Rastreadores:**
-   * As faturas registram competência e valor total fixados no momento da cobrança para garantir rastreabilidade contábil imutável.
-   * Relatórios contábeis e fiscais devem explicitamente invocar `.IgnoreQueryFilters()` para manter a visibilidade sobre empresas e planos inativos em competências passadas.
-4. **Política de Falha Rápida no Startup (Fail-Fast):**
-   * Se o banco ou o seed falharem no início da aplicação em desenvolvimento, o processo é abortado imediatamente (`throw`), prevenindo que o sistema opere em estado degradado ou inconsistente.
+   * Padrão para todas as PKs: combina timestamp sequencial (alta performance no índice B-Tree) com segurança contra enumeração/IDOR e geração de chave pré-banco.
+2. **Sanitização de Dados:**
+   * `Cnpj`: 14 dígitos numéricos puros no banco.
+   * `Telefone`: 11 dígitos numéricos puros no banco (DDD + número). Máscaras e formatações pertencem exclusivamente à camada de apresentação/UI.
+3. **Mapeamento Unidirecional de Dependência no EF Core:**
+   * Relações 1:N são configuradas apenas na entidade dependente (a que possui a FK), eliminando declarações duplicadas e potenciais conflitos no grafo do EF Core.
+4. **Imutabilidade Financeira e Visibilidade Histórica:**
+   * Faturas preservam o valor e competência da data de emissão.
+   * Consultas contábeis e fiscais devem aplicar obrigatoriamente `.IgnoreQueryFilters()` para não omitir dados de empresas ou planos desativados via soft delete.
+5. **Fail-Fast no Startup:**
+   * A API encerra imediatamente com `throw` se a migration ou o seed falharem em ambiente de desenvolvimento, evitando estados zumbis.
+6. **Git Branching Visual (No-Fast-Forward):**
+   * Toda feature é isolada em sua própria branch e integrada via `git merge --no-ff`, garantindo rastreabilidade no gráfico e histórico profissional.
