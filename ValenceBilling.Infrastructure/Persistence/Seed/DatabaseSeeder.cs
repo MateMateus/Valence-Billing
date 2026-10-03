@@ -16,6 +16,9 @@ public static class DatabaseSeeder
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole<Guid>> roleManager)
     {
+        // Ponto 3: Captura única e atômica de tempo UTC para toda a execução
+        var now = DateTime.UtcNow;
+
         // 1. Roles
         string[] roles = ["Admin", "Financeiro", "Cliente"];
         foreach (var role in roles)
@@ -36,7 +39,7 @@ public static class DatabaseSeeder
             }
         }
 
-        // 2. Planos Comerciais (Inserção individual e resiliente com IgnoreQueryFilters)
+        // 2. Planos Comerciais (Resiliente, plano a plano e reativando se inativo)
         var catalogoPlanos = new[]
         {
             new Plano
@@ -66,16 +69,20 @@ public static class DatabaseSeeder
         {
             var planoExistente = await context.Planos
                 .IgnoreQueryFilters()
-                .AnyAsync(p => p.Nome == plano.Nome);
+                .FirstOrDefaultAsync(p => p.Nome == plano.Nome);
 
-            if (!planoExistente)
+            if (planoExistente == null)
             {
                 await context.Planos.AddAsync(plano);
+            }
+            else if (!planoExistente.IsActive)
+            {
+                planoExistente.IsActive = true;
             }
         }
         await context.SaveChangesAsync();
 
-        // 3. Cliente de Teste B2B (CNPJ matematicamente válido na Receita Federal)
+        // 3. Cliente de Teste B2B (Garante existência e estado ativo)
         var cnpjTeste = "45997418000153";
         var clienteTeste = await context.Clientes
             .IgnoreQueryFilters()
@@ -95,19 +102,28 @@ public static class DatabaseSeeder
             await context.Clientes.AddAsync(clienteTeste);
             await context.SaveChangesAsync();
         }
+        else if (!clienteTeste.IsActive)
+        {
+            clienteTeste.Ativar();
+            await context.SaveChangesAsync();
+        }
 
-        // 4. Usuários Iniciais com Validação de Erros
-        await SeedUserAsync(userManager, "admin@billing.local", "Admin@123", "Administrador Valence", "Admin");
-        await SeedUserAsync(userManager, "financeiro@billing.local", "Financeiro@123", "Operador Financeiro", "Financeiro");
-        await SeedUserAsync(userManager, "empresa.teste@cliente.local", "Cliente@123", "Gestor Cliente Teste", "Cliente", clienteTeste.Id);
+        // 4. Usuários Iniciais (Com bypass de filtro global e garantia de role)
+        await SeedUserAsync(context, userManager, "admin@billing.local", "Admin@123", "Administrador Valence", "Admin");
+        await SeedUserAsync(context, userManager, "financeiro@billing.local", "Financeiro@123", "Operador Financeiro", "Financeiro");
+        await SeedUserAsync(context, userManager, "empresa.teste@cliente.local", "Cliente@123", "Gestor Cliente Teste", "Cliente", clienteTeste.Id);
 
-        // 5. Carga de Teste: Assinatura e Fatura com Paridade de ClienteId
+        // 5. Carga de Teste: Assinatura Ativa e Fatura Consistente
         var planoPro = await context.Planos
             .IgnoreQueryFilters()
             .FirstAsync(p => p.Nome == "Pro");
 
+        // Ponto 2: Garante que a assinatura está ativa
         var assinaturaAtiva = await context.Assinaturas
-            .FirstOrDefaultAsync(a => a.ClienteId == clienteTeste.Id && a.PlanoId == planoPro.Id);
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(a => a.ClienteId == clienteTeste.Id
+                                   && a.PlanoId == planoPro.Id
+                                   && a.Status == AssinaturaStatus.Ativa);
 
         if (assinaturaAtiva == null)
         {
@@ -116,8 +132,8 @@ public static class DatabaseSeeder
                 ClienteId = clienteTeste.Id,
                 PlanoId = planoPro.Id,
                 Status = AssinaturaStatus.Ativa,
-                DataInicio = DateTime.UtcNow.AddMonths(-1),
-                DataFimPeriodoAtual = DateTime.UtcNow.AddMonths(1),
+                DataInicio = now.AddMonths(-1),
+                DataFimPeriodoAtual = now.AddMonths(1),
                 DiaVencimento = 10
             };
 
@@ -125,21 +141,27 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // Fatura da competência atual garantindo paridade de ClienteId
-        var competenciaAtual = DateTime.UtcNow.ToString("yyyy-MM");
+        // Ponto 3: Competência e Vencimento calculados com consistência
+        var competenciaAtual = now.ToString("yyyy-MM");
         var faturaAtual = await context.Faturas
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(f => f.AssinaturaId == assinaturaAtiva.Id && f.Competencia == competenciaAtual);
 
         if (faturaAtual == null)
         {
+            var dataVencimento = new DateTime(now.Year, now.Month, 10, 0, 0, 0, DateTimeKind.Utc);
+
+            // Se hoje já passou do dia 10, a fatura nasce como Vencida; senão, Pendente
+            var statusFatura = now.Date > dataVencimento.Date ? FaturaStatus.Vencida : FaturaStatus.Pendente;
+
             faturaAtual = new Fatura
             {
                 AssinaturaId = assinaturaAtiva.Id,
-                ClienteId = assinaturaAtiva.ClienteId, // Garante que a fatura e a assinatura apontam para o mesmo cliente
+                ClienteId = assinaturaAtiva.ClienteId,
                 Competencia = competenciaAtual,
                 ValorTotal = planoPro.ValorMensal,
-                DataVencimento = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 10, 0, 0, 0, DateTimeKind.Utc),
-                Status = FaturaStatus.Pendente
+                DataVencimento = dataVencimento,
+                Status = statusFatura
             };
 
             await context.Faturas.AddAsync(faturaAtual);
@@ -148,6 +170,7 @@ public static class DatabaseSeeder
     }
 
     private static async Task SeedUserAsync(
+        AppDbContext context,
         UserManager<ApplicationUser> userManager,
         string email,
         string password,
@@ -155,7 +178,13 @@ public static class DatabaseSeeder
         string role,
         Guid? clienteId = null)
     {
-        var user = await userManager.FindByEmailAsync(email);
+        var normalizedEmail = email.ToUpperInvariant();
+
+        // Ponto 1: Localiza mesmo se o usuário estiver desativado por soft delete
+        var user = await context.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
+
         if (user == null)
         {
             user = new ApplicationUser
@@ -173,7 +202,17 @@ public static class DatabaseSeeder
                 var errors = string.Join(", ", result.Errors.Select(e => e.Description));
                 throw new InvalidOperationException($"Falha ao criar usuário '{email}': {errors}");
             }
+        }
+        else if (!user.IsActive)
+        {
+            // Reativa o usuário se estava inativo
+            user.IsActive = true;
+            await context.SaveChangesAsync();
+        }
 
+        // Ponto 1: Garante que a role está atribuída mesmo se o usuário já existia
+        if (!await userManager.IsInRoleAsync(user, role))
+        {
             var roleResult = await userManager.AddToRoleAsync(user, role);
             if (!roleResult.Succeeded)
             {

@@ -21,4 +21,8 @@ public class Cliente
     // Propriedade de navegação (1 Cliente -> N Assinaturas, N Faturas)
     public ICollection<Assinatura> Assinaturas { get; set; } = new List<Assinatura>();
     public ICollection<Fatura> Faturas { get; set; } = new List<Fatura>();
+
+    // Operações de Domínio (DDD)
+    public void Ativar() => IsActive = true;
+    public void Desativar() => IsActive = false;
 }
